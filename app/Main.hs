@@ -15,6 +15,9 @@ data Void
 -- Either represents the alternative of either a left or right kind of value
 data Either l r = Left l | Right r
 
+-- maybe is a type containg either a value of some type or nothing
+data Maybe t = None | Some t
+
 -- Semigroup is a type that provides a function two combine two 
 -- values to a third
 class Semigroup sem where
@@ -54,6 +57,7 @@ class Bifunctor pro where
 -- a given function and the produced values via another function
 class Profunctor pro where
     dimap :: (a -> b) -> (c -> d) -> pro b c -> pro a d
+
 
 -- a foldable is a structure containing values of some kind
 -- and providing a way to combine a structure into a single
@@ -549,6 +553,26 @@ set l b = over l (const b)
     where const x _y = x
 
 
+
+-- a Natural transformation is a mapping from one kind of functor to another kind of functor
+-- that works nomatter the type inside the functor
+type Natural f g = forall a. f a -> g a
+
+-- an example for a natural Transformation is the conversion from maybe to a list of
+-- either none or one element
+-- note that the reverse is not possible becaus not all lists can be converted into
+-- a Maybe of the same inner type (without discarding values of the list)
+maybeToList :: Natural Maybe List
+maybeToList None = List $ Fix NilF
+maybeToList (Some x) = List $ Fix $ ConsF x $ Fix NilF
+
+-- another example of a natural transforamtion is the 
+-- conversion from either to maybe
+-- note that the reverse is not possible because from a Maybe.None
+-- we can no construct a Either.Left
+eitherToMaybe :: Natural (Either a) Maybe
+eitherToMaybe (Right x) = Some x
+eitherToMaybe _ = None
 
 leftSide :: Lens (a,b) (c,b) a c
 leftSide = lens fst (\(_, b) c -> (c, b))
