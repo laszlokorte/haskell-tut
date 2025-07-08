@@ -3,11 +3,18 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TupleSections  #-}
+{-# LANGUAGE CApiFFI  #-}
 
 module Main where
 
 -- required only some of the functions from the standard library
-import Prelude(Num, Integer, IO, (.), ($), fst, snd, (+), (*), print, (&&), (||), Bool(True, False))
+import Prelude(Num, IO, (.), ($), fst, snd, (+), (*), print, (&&), (||), Bool(True, False))
+
+-- Haskell can import Functions defined in C
+import Foreign.C.Types
+
+-- Import a function called square defined from a header file (c.h)
+foreign import capi "c.h square" csquare :: CInt -> CInt
 
 -- Void is an empty type that has no members and can not be constructed
 data Void
@@ -263,6 +270,27 @@ instance Functor List where
         where
             alg NilF = Fix NilF
             alg (ConsF x r) = Fix (ConsF (f x) r)
+
+
+-- A List is a Pointed Functor because it can be constructed from a single element
+instance Pointed List where
+    inject a = List $ Fix $ ConsF a $ Fix NilF
+
+-- A List list an applicative because a list of functions can be applied
+-- to a list of values, yielding a list of results
+instance Applicative List where
+    apply (List fs) xs = cata alg fs
+        where
+            alg NilF = List $ Fix NilF
+            alg (ConsF f acc) = appendList (map f xs) acc
+
+
+-- Two Lists can be appended
+appendList :: List t -> List t -> List t
+appendList (List xs) (List ys) = List $ cata alg xs
+  where
+    alg NilF = ys
+    alg (ConsF x acc) = Fix $ ConsF x acc
 
 -- cata a recursion scheme that applies an algebra to the a fixpoint of a pattern functor
 -- in order to reduce a recursive structor into a single value
@@ -574,12 +602,34 @@ eitherToMaybe :: Natural (Either a) Maybe
 eitherToMaybe (Right x) = Some x
 eitherToMaybe _ = None
 
+-- a ZipList is an alternative Applicative implementation for a List
+-- intepreting the applicative combination of two lists not as cartesian product but
+-- as pairwise zipping
+newtype ZipList t = ZipList (ListFix t)
+
+instance Functor ZipList where
+    map f (ZipList l) = ZipList $ cata alg l
+        where
+            alg NilF = Fix NilF
+            alg (ConsF x r) = Fix (ConsF (f x) r)
+
+
+instance Pointed ZipList where
+    inject a = ZipList $ Fix $ ConsF a $ Fix NilF
+
+instance Applicative ZipList where
+    apply _ (ZipList (Fix NilF)) = ZipList $ Fix NilF
+    apply (ZipList (Fix NilF)) _ = ZipList $ Fix NilF
+    apply (ZipList (Fix (ConsF f fr))) (ZipList (Fix (ConsF x xr))) = ZipList $ Fix (ConsF (f x) tail)
+        where tail = let ZipList z = apply (ZipList fr) (ZipList xr) in z
+
 leftSide :: Lens (a,b) (c,b) a c
 leftSide = lens fst (\(_, b) c -> (c, b))
 
 -- Entry point
 main :: IO ()
 main = do
-    let (x,y) = over leftSide (+ 1) (40 :: Integer, 50 :: Integer)
+    let nums = (40 :: CInt , 50 :: CInt)
+    let (x, y) = over leftSide csquare nums
     print x
     print y
