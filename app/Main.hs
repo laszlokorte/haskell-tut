@@ -626,6 +626,49 @@ instance Applicative ZipList where
 leftSide :: Lens (a,b) (c,b) a c
 leftSide = lens fst (\(_, b) c -> (c, b))
 
+kombiIdentity :: p -> p
+kombiIdentity a = a
+kombiKestrel :: p1 -> p2 -> p1
+kombiKestrel a _ = a
+kombiKite :: p1 -> p2 -> p2
+kombiKite _ b = b
+kombiWarbler :: (t1 -> t1 -> t2) -> t1 -> t2
+kombiWarbler a b = a b b
+kombiCardinal :: (t1 -> t2 -> t3) -> t2 -> t1 -> t3
+kombiCardinal a b c = a c b
+kombiBluebird :: (a -> b) -> (t -> a) -> t -> b
+kombiBluebird a b c = a $ b c
+kombiBlackbird :: (a -> b) -> (t1 -> t2 -> a) -> t1 -> t2 -> b
+kombiBlackbird a b c d = a $ b c d 
+kombiBunting :: (a -> b) -> (t1 -> t2 -> t3 -> a) -> t1 -> t2 -> t3 -> b
+kombiBunting a b c d e = a $ b c d e
+kombiBecard :: (a1 -> b) -> (a2 -> a1) -> (t -> a2) -> t -> b
+kombiBecard a b c d = a $ b $ c d
+kombiStarling :: (t -> a -> b) -> (t -> a) -> t -> b
+kombiStarling a b c = a c $ b c
+kombiViolet :: (t1 -> t2 -> t3) -> (t2 -> t1) -> t2 -> t3
+kombiViolet a b c = a (b c) c
+kombiDove :: (t1 -> a -> b) -> t1 -> (t2 -> a) -> t2 -> b
+kombiDove a b c d = a b $ c d
+kombiZebra :: (t1 -> t2 -> t3) -> (t4 -> t1) -> t4 -> t2 -> t3
+kombiZebra= kombiBluebird
+kombiPhoenix :: (t1 -> t2 -> t3) -> (t4 -> t1) -> (t4 -> t2) -> t4 -> t3
+kombiPhoenix a b c d = a (b d) (c d)
+kombiPsi :: (t1 -> t1 -> t2) -> (t3 -> t1) -> t3 -> t3 -> t2
+kombiPsi a b c d = a (b c) (b d)
+kombiDickcissel :: (t1 -> t2 -> a -> b) -> t1 -> t2 -> (t3 -> a) -> t3 -> b
+kombiDickcissel a b c d e = a b c $ d e
+kombiDovekiea :: (t1 -> t2 -> t3) -> (t4 -> t1) -> t4 -> (t5 -> t2) -> t5 -> t3
+kombiDovekiea a b c d e = a (b c) (d e)
+kombiEagle :: (t1 -> a -> b) -> t1 -> (t2 -> t3 -> a) -> t2 -> t3 -> b
+kombiEagle a b c d e = a b $ c d e
+kombiGoldenEagle :: (t1 -> t2 -> t3) -> (t4 -> t5 -> t1) -> t4 -> t5 -> t2 -> t3
+kombiGoldenEagle = kombiBlackbird
+kombiePeasant :: (t1 -> t2 -> t3) -> (t4 -> t5 -> t1) -> (t4 -> t5 -> t2) -> t4 -> t5 -> t3
+kombiePeasant a b c d e = a (b d e) (c d e)
+kombiBaldEagle :: (t1 -> t2 -> t3) -> (t4 -> t5 -> t1) -> t4 -> t5 -> (t6 -> t7 -> t2) -> t6 -> t7 -> t3
+kombiBaldEagle a b c d e f g = a (b c d) (e f g)
+
 -- Entry point
 main :: IO ()
 main = do
