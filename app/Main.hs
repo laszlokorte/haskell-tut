@@ -623,9 +623,62 @@ instance Applicative ZipList where
     apply (ZipList (Fix (ConsF f fr))) (ZipList (Fix (ConsF x xr))) = ZipList $ Fix (ConsF (f x) tail)
         where tail = let ZipList z = apply (ZipList fr) (ZipList xr) in z
 
+
+-- a stream is an infinite concatination of values of a type
+data Stream a = Stream a (Stream a) 
+
+-- it is obviously a Functor since a function can be applied to all its
+-- elements
+instance Functor Stream where
+    map f (Stream head rest) = Stream (f head) $ map f rest
+
+instance Pointed Stream where
+    inject x = Stream x (inject x)
+
+instance Copointed Stream where
+    extract (Stream h _) = h
+
+instance Applicative Stream where
+    apply (Stream f r1) (Stream v r2) = Stream (f v) (apply r1 r2)
+
+-- but a Stream is not a Monad because two nested stream can not be flattened
+-- instead it is a comonad:
+instance Comonad Stream where
+   -- if a function can turn a whole stream into a single value
+   -- a stream can be turned into a full new stream of THOSE values
+   extend f stream = Stream (f stream) (extend f rest)
+      where (Stream _ rest) = stream
+
+newtype Kleisli mon a b = Kleisli (a -> mon b)
+
+instance Functor mon => Functor (Kleisli mon a) where
+    map f (Kleisli k) = Kleisli $ compose (map f) k
+
+instance Pointed mon => Pointed (Kleisli mon a) where
+    inject v = Kleisli $ \_ -> inject v
+
+instance Applicative mon => Applicative (Kleisli mon a) where
+    apply (Kleisli f) (Kleisli v) = Kleisli $ \x -> apply (f x) (v x)
+
+instance Monad mon => Semigroupoid (Kleisli mon) where
+    compose (Kleisli a) (Kleisli b) = Kleisli (\x -> bind (b x) a)
+
+instance Monad mon => Category (Kleisli mon) where
+    id = Kleisli (inject)
+
 leftSide :: Lens (a,b) (c,b) a c
 leftSide = lens fst (\(_, b) c -> (c, b))
 
+
+
+
+-- combinators are higher order functions that reference nothing but their own parameters
+-- many of them represent cmmonly used computation structure.
+-- for example the calculation sqrt(x^2 + y^2) can be recognized as
+-- taking two inputs, applying the same unary function to both of them, applying a binary function to the results
+-- and then applying another unary function (actually the inverse of the first one) to the result.
+-- in short: \u1 b u2 x y -> (u2 (b (u1 x) (u1 y))
+-- or \u1 b u2 x y -> u2 $ b (u1 x) (u1 y)
 kombiIdentity :: p -> p
 kombiIdentity a = a
 kombiKestrel :: p1 -> p2 -> p1
@@ -672,7 +725,7 @@ kombiBaldEagle a b c d e f g = a (b c d) (e f g)
 -- Entry point
 main :: IO ()
 main = do
-    let nums = (40 :: CInt , 50 :: CInt)
+    let nums = (42 :: CInt , 108 :: CInt)
     let (x, y) = over leftSide csquare nums
     print x
     print y
