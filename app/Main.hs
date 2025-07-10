@@ -292,6 +292,13 @@ appendList (List xs) (List ys) = List $ cata alg xs
     alg NilF = ys
     alg (ConsF x acc) = Fix $ ConsF x acc
 
+instance Semigroup (List a) where
+    combine = appendList
+
+instance Monoid (List a) where
+    identity = List $ Fix NilF
+
+
 -- cata a recursion scheme that applies an algebra to the a fixpoint of a pattern functor
 -- in order to reduce a recursive structor into a single value
 -- the pattern functor encodes the various (base) cases of the recursion and acts as container
@@ -666,11 +673,21 @@ instance Monad mon => Semigroupoid (Kleisli mon) where
 instance Monad mon => Category (Kleisli mon) where
     id = Kleisli (inject)
 
-leftSide :: Lens (a,b) (c,b) a c
-leftSide = lens fst (\(_, b) c -> (c, b))
 
+data ListZipper a = ListZipper (List a) a (List a)
 
+instance Functor ListZipper where
+    map f (ListZipper left c right) = ListZipper (map f left) (f c) (map f right)
 
+instance Pointed ListZipper where
+    inject v = ListZipper identity v identity
+
+data BinaryTreeF a r = Inner a r r | Leaf a | Empty
+newtype BinaryTree a = BinaryTree (Fix (BinaryTreeF a))
+
+data BinaryTreeContextF a r = Top | LeftCrumb r (BinaryTree a) | RightCrumb r (BinaryTree a)
+newtype BinaryTreeContext a = BinaryTreeContext (Fix (BinaryTreeContextF a))
+data BinaryTreeZipper a = BinaryTreeZipper a (BinaryTreeContext a)
 
 -- combinators are higher order functions that reference nothing but their own parameters
 -- many of them represent cmmonly used computation structure.
@@ -721,6 +738,9 @@ kombiePeasant :: (t1 -> t2 -> t3) -> (t4 -> t5 -> t1) -> (t4 -> t5 -> t2) -> t4 
 kombiePeasant a b c d e = a (b d e) (c d e)
 kombiBaldEagle :: (t1 -> t2 -> t3) -> (t4 -> t5 -> t1) -> t4 -> t5 -> (t6 -> t7 -> t2) -> t6 -> t7 -> t3
 kombiBaldEagle a b c d e f g = a (b c d) (e f g)
+
+leftSide :: Lens (a,b) (c,b) a c
+leftSide = lens fst (\(_, b) c -> (c, b))
 
 -- Entry point
 main :: IO ()
